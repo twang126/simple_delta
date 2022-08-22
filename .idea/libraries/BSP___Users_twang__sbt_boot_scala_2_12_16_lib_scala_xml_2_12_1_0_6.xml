@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="BSP: /Users/twang/.sbt/boot/scala-2.12.16/lib/scala-xml_2.12-1.0.6">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.sbt/boot/scala-2.12.16/lib/scala-xml_2.12-1.0.6.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

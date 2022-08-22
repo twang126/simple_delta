@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="BSP: ivy-2.3.0-sbt-fbc4f586aeeb1591710b14eb4f41b94880dcd745">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.sbt/boot/scala-2.12.16/org.scala-sbt/sbt/1.7.1/ivy-2.3.0-sbt-fbc4f586aeeb1591710b14eb4f41b94880dcd745.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

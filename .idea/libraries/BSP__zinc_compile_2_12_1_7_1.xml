@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="BSP: zinc-compile_2.12-1.7.1">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.sbt/boot/scala-2.12.16/org.scala-sbt/sbt/1.7.1/zinc-compile_2.12-1.7.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
