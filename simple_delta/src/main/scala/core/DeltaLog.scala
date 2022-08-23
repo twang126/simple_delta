@@ -3,13 +3,13 @@ package core
 import scala.collection.mutable
 
 class DeltaLog(
-                implicit private val ctxt: DeltaContext,
-                fileState: Map[String, Any] = Map.empty,
-                transactions: Map[String, Transaction] = Map.empty
-              ) {
+                val fileState: Map[String, Any] = Map.empty,
+                val transactions: Map[String, Transaction] = Map.empty
+              ) (implicit val ctxt: DeltaContext) {
   private val LATEST_CHECKPOINT_FILE_NAME: String = "_latest_checkpoint"
   private val DEFAULT_LATEST_CHECKPOINT_FILE_VERSION: Int = 0
   private val DELTA_CHECKPOINT_FILENAME_PREFIX: String = "checkpoint_"
+  private val DEFAULT_CHECKPOINT_INTERVAL: Int = 10
 
 
   def _getLatestCheckpointVersion: Int = {
@@ -27,16 +27,16 @@ class DeltaLog(
   }
 
   def _getLatestTableVersion: (Int, List[Transaction]) = {
-    var version = _getLatestCheckpointVersion
-    var txns = new mutable.ArrayDeque[Transaction](0)
+    var version = _getLatestCheckpointVersion + 1
+    val txns = new mutable.ArrayDeque[Transaction](0)
 
     while (transactions.contains(_buildTransactionFilePath(version))) {
-      version += 1
       val t = transactions(_buildTransactionFilePath(version))
       txns.addOne(t)
+      version += 1
     }
 
-    (version, txns.toList)
+    (version - 1, txns.toList)
   }
 
   def _loadLatestCheckpointFile: DeltaTable = {
@@ -70,5 +70,19 @@ class DeltaLog(
     val (txnVersion, transactions) = _getLatestTableVersion
 
     _applyTransactions(checkpointTable, transactions, txnVersion)
+  }
+
+  def commitTransaction(optimisticTable: DeltaTable, transaction: Transaction, version: Int): DeltaLog = {
+    val filepath = _buildTransactionFilePath(version)
+
+    if (version % DEFAULT_CHECKPOINT_INTERVAL != 0) {
+      DeltaLog(this.fileState, this.transactions + (filepath -> transaction))
+    } else {
+      val checkpointPath = _buildCheckpointFilePath(version)
+      DeltaLog(
+        this.fileState + (checkpointPath -> optimisticTable.table) + (LATEST_CHECKPOINT_FILE_NAME, version),
+        this.transactions + (filepath -> transaction)
+      )
+    }
   }
 }
