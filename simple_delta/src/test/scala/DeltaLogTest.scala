@@ -86,4 +86,30 @@ class DeltaLogTest extends munit.FunSuite {
         2
       ))
     }
+
+    test("DeltaLog.commitTransactionNoCheckpoint") {
+      val testLog: DeltaLog = DeltaLog(
+        Map(
+          "_latest_checkpoint" -> 1, "checkpoint_1" -> List(
+            Map("name" -> "Tim", "age" -> 23), Map("name" -> "Eric", "age" -> 20)
+          )
+        ),
+        Map(
+          "0000000001" -> AddTransaction(List.empty),
+          "0000000002" -> AddTransaction(List(Map("name" -> "Rachel", "age" -> 24)))
+        )
+      )
+
+      val resultLog = testLog.commitTransaction(AddTransaction(List(Map("name" -> "Steve", "age" -> 74))))
+
+      // No new checkpoints should have been made
+      assert(resultLog.fileState == testLog.fileState)
+
+      // A new transaction should have been added
+      assert(resultLog.transactions == Map(
+        "0000000001" -> AddTransaction(List.empty),
+        "0000000002" -> AddTransaction(List(Map("name" -> "Rachel", "age" -> 24))),
+        "0000000003" -> AddTransaction(List(Map("name" -> "Steve", "age" -> 74)))
+      ))
+    }
 }
