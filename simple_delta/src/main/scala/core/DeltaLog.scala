@@ -80,11 +80,23 @@ class DeltaLog(
     if (newVersion % DEFAULT_CHECKPOINT_INTERVAL != 0) {
       DeltaLog(this.fileState, this.transactions + (filepath -> transaction))
     } else {
-      val checkpointPath = _buildCheckpointFilePath(optimisticTable.version)
-      DeltaLog(
-        this.fileState + (checkpointPath -> optimisticTable.table) + (LATEST_CHECKPOINT_FILE_NAME -> newVersion),
-        this.transactions + (filepath -> transaction)
-      )
+      val checkpointPath = _buildCheckpointFilePath(newVersion)
+      val newTransactions = this.transactions + (filepath -> transaction)
+      transaction match {
+        case AddTransaction(rows) => {
+          val newRows = rows ::: optimisticTable.table
+          DeltaLog(
+            this.fileState + (checkpointPath -> newRows) + (LATEST_CHECKPOINT_FILE_NAME -> newVersion),
+            newTransactions
+          )
+        }
+        case DeleteTransaction(rows) => {
+          DeltaLog(
+            this.fileState + (checkpointPath -> optimisticTable.table.filter(m => !rows.contains(m))) + (LATEST_CHECKPOINT_FILE_NAME -> newVersion),
+            newTransactions
+          )
+        }
+      }
     }
   }
 }
