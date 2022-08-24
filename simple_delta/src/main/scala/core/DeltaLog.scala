@@ -5,7 +5,7 @@ import scala.collection.mutable
 class DeltaLog(
                 val fileState: Map[String, Any] = Map.empty,
                 val transactions: Map[String, Transaction] = Map.empty
-              ) (implicit val ctxt: DeltaContext) {
+              ) {
   private val LATEST_CHECKPOINT_FILE_NAME: String = "_latest_checkpoint"
   private val DEFAULT_LATEST_CHECKPOINT_FILE_VERSION: Int = 0
   private val DELTA_CHECKPOINT_FILENAME_PREFIX: String = "checkpoint_"
@@ -19,7 +19,7 @@ class DeltaLog(
   }
 
   def _buildTransactionFilePath(version: Int): String = {
-    "%10d".format(version)
+    version.toString.reverse.padTo(10, '0').reverse
   }
 
   def _buildCheckpointFilePath(version: Int): String = {
@@ -72,15 +72,17 @@ class DeltaLog(
     _applyTransactions(checkpointTable, transactions, txnVersion)
   }
 
-  def commitTransaction(optimisticTable: DeltaTable, transaction: Transaction, version: Int): DeltaLog = {
+  def commitTransaction(transaction: Transaction): DeltaLog = {
+    val optimisticTable = getTable
+    val version = optimisticTable.version
     val filepath = _buildTransactionFilePath(version)
 
     if (version % DEFAULT_CHECKPOINT_INTERVAL != 0) {
       DeltaLog(this.fileState, this.transactions + (filepath -> transaction))
     } else {
-      val checkpointPath = _buildCheckpointFilePath(version)
+      val checkpointPath = _buildCheckpointFilePath(optimisticTable.version)
       DeltaLog(
-        this.fileState + (checkpointPath -> optimisticTable.table) + (LATEST_CHECKPOINT_FILE_NAME, version),
+        this.fileState + (checkpointPath -> optimisticTable.table) + (LATEST_CHECKPOINT_FILE_NAME -> version),
         this.transactions + (filepath -> transaction)
       )
     }
