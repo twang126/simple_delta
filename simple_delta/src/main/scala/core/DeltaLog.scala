@@ -50,16 +50,20 @@ class DeltaLog(
     )
   }
 
-  def _applyTransactions(checkpointDeltaTable: DeltaTable, transactions: List[Transaction], maxVersionId: Int): DeltaTable = {
-    var startingTable = checkpointDeltaTable.table
-
-    for (txt <- transactions) {
-      txt match {
-        case AddTransaction(rows) => startingTable = rows ::: startingTable
-        case DeleteTransaction(rows) => {
-          startingTable = startingTable.filter(m => !rows.contains(m))
-        }
+  private def _getNewRows(startingRows: List[Map[String, Any]], transaction: Transaction): List[Map[String, Any]] = {
+    transaction match {
+      case AddTransaction(rows) => rows ::: startingRows
+      case DeleteTransaction(rows) => {
+        startingRows.filter(m => !rows.contains(m))
       }
+    }
+  }
+
+  def _applyTransactions(startDeltaTable: DeltaTable, transactions: List[Transaction], maxVersionId: Int): DeltaTable = {
+    var startingTable = startDeltaTable.table
+
+    for (txn <- transactions) {
+      startingTable = _getNewRows(startingTable, txn)
     }
 
     DeltaTable(startingTable, maxVersionId)
@@ -82,21 +86,12 @@ class DeltaLog(
     } else {
       val checkpointPath = _buildCheckpointFilePath(newVersion)
       val newTransactions = this.transactions + (filepath -> transaction)
-      transaction match {
-        case AddTransaction(rows) => {
-          val newRows = rows ::: optimisticTable.table
-          DeltaLog(
-            this.fileState + (checkpointPath -> newRows) + (LATEST_CHECKPOINT_FILE_NAME -> newVersion),
-            newTransactions
-          )
-        }
-        case DeleteTransaction(rows) => {
-          DeltaLog(
-            this.fileState + (checkpointPath -> optimisticTable.table.filter(m => !rows.contains(m))) + (LATEST_CHECKPOINT_FILE_NAME -> newVersion),
-            newTransactions
-          )
-        }
-      }
+      val newRows = _getNewRows(optimisticTable.table, transaction)
+
+      DeltaLog(
+        this.fileState + (checkpointPath -> newRows) + (LATEST_CHECKPOINT_FILE_NAME -> newVersion),
+        newTransactions
+      )
     }
   }
 }

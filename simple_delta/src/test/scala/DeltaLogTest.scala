@@ -1,4 +1,4 @@
-import core.{AddTransaction, DeltaLog, DeltaTable}
+import core.{AddTransaction, DeleteTransaction, DeltaLog, DeltaTable}
 import munit.FunSuite
 import org.mockito.Mockito.*
 import org.scalatestplus.mockito.MockitoSugar
@@ -87,6 +87,50 @@ class DeltaLogTest extends FunSuite with MockitoSugar {
           Map("name" -> "Rachel", "age" -> 24), Map("name" -> "Tim", "age" -> 23), Map("name" -> "Eric", "age" -> 20)
         ),
         2
+      ))
+    }
+
+    test("DeltaLog.getTableWithDelete") {
+      val testLog: DeltaLog = DeltaLog(
+        Map(
+          "_latest_checkpoint" -> 1, "checkpoint_1" -> List(
+            Map("name" -> "Tim", "age" -> 23), Map("name" -> "Eric", "age" -> 20)
+          )
+        ),
+        Map(
+          "0000000001" -> AddTransaction(List.empty),
+          "0000000002" -> AddTransaction(List(Map("name" -> "Rachel", "age" -> 24))),
+          "0000000003" -> DeleteTransaction(List(Map("name" -> "Eric", "age" -> 20)))
+        )
+      )
+
+      assert(testLog.getTable == DeltaTable(
+        List(
+          Map("name" -> "Rachel", "age" -> 24), Map("name" -> "Tim", "age" -> 23)
+        ),
+        3
+      ))
+    }
+
+    test("DeltaLog.getTableWithNoOpDelete") {
+      val testLog: DeltaLog = DeltaLog(
+        Map(
+          "_latest_checkpoint" -> 1, "checkpoint_1" -> List(
+            Map("name" -> "Tim", "age" -> 23), Map("name" -> "Eric", "age" -> 20)
+          )
+        ),
+        Map(
+          "0000000001" -> AddTransaction(List.empty),
+          "0000000002" -> AddTransaction(List(Map("name" -> "Rachel", "age" -> 24))),
+          "0000000003" -> DeleteTransaction(List(Map("name" -> "NonExistent", "age" -> 20)))
+        )
+      )
+
+      assert(testLog.getTable == DeltaTable(
+        List(
+          Map("name" -> "Rachel", "age" -> 24), Map("name" -> "Tim", "age" -> 23), Map("name" -> "Eric", "age" -> 20)
+        ),
+        3
       ))
     }
 
